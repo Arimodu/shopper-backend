@@ -45,8 +45,7 @@ async function update(req: IReq, res: IRes) {
   // Update user fields
   existingUser.name = user.name;
   // Note: Password and other field updates will be set later
-  // Cant really be arsed to implement that at 2AM
-
+  
   // Requires DB implementation
   //const data = await dbEngine.updateUser(existingUser);
   //res.status(HttpStatusCodes.OK).json(data);

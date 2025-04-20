@@ -1,11 +1,25 @@
 
 export default {
-  Base: '/api',
+  Base: '/api/v1',
+  List: {
+    Base: '/list',
+    Id: '/:listId',
+    Create: '/create',
+  },
+  Items: {
+    Base: '/items',
+    Create: '/create',
+    Id: '/:itemId',
+  },
   Users: {
     Base: '/users',
-    Get: '/all',
-    Add: '/add',
+    Get: '/me',
     Update: '/update',
-    Delete: '/delete/:id',
+    Delete: '/delete',
+  },
+  Auth: {
+    Base: '/auth',
+    Login: '/login',
+    Register: '/register',
   },
 } as const;

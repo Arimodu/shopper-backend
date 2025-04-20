@@ -27,7 +27,7 @@ async function getOne(email: string): Promise<IUser | null> {
 async function persists(id: number): Promise<boolean> {
   const db = await orm.openDb();
   for (const user of db.users) {
-    if (user.id === id) {
+    if (user._id === id) {
       return true;
     }
   }
@@ -47,7 +47,7 @@ async function getAll(): Promise<IUser[]> {
  */
 async function add(user: IUser): Promise<void> {
   const db = await orm.openDb();
-  user.id = getRandomInt();
+  user._id = getRandomInt();
   db.users.push(user);
   return orm.saveDb(db);
 }
@@ -58,7 +58,7 @@ async function add(user: IUser): Promise<void> {
 async function update(user: IUser): Promise<void> {
   const db = await orm.openDb();
   for (let i = 0; i < db.users.length; i++) {
-    if (db.users[i].id === user.id) {
+    if (db.users[i]._id === user._id) {
       const dbUser = db.users[i];
       db.users[i] = {
         ...dbUser,
@@ -76,7 +76,7 @@ async function update(user: IUser): Promise<void> {
 async function delete_(id: number): Promise<void> {
   const db = await orm.openDb();
   for (let i = 0; i < db.users.length; i++) {
-    if (db.users[i].id === id) {
+    if (db.users[i]._id === id) {
       db.users.splice(i, 1);
       return orm.saveDb(db);
     }
@@ -105,7 +105,7 @@ async function insertMult(
   const db = await orm.openDb(),
     usersF = [ ...users ];
   for (const user of usersF) {
-    user.id = getRandomInt();
+    user._id = getRandomInt();
     user.created = new Date();
   }
   db.users = [ ...db.users, ...users ];

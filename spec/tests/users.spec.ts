@@ -122,7 +122,7 @@ describe('UserRouter', () => {
     `of "${HttpStatusCodes.BAD_REQUEST}" if the user param was missing`,
     done => {
       const user = User.new();
-      user.id = ('5' as unknown as number);
+      user._id = ('5' as unknown as number);
       agent
         .put(Paths.Users.Update)
         .send({ user })
@@ -140,7 +140,7 @@ describe('UserRouter', () => {
     it('should return a JSON object with the error message of ' + 
     `"${USER_NOT_FOUND_ERR}" and a status code of ` + 
     `"${HttpStatusCodes.NOT_FOUND}" if the id was not found.`, done => {
-      const user = User.new({ id: 4, name: 'a', email: 'a@a.com' });
+      const user = User.new({ _id: 4, name: 'a', email: 'a@a.com' });
       agent
         .put(Paths.Users.Update)
         .send({ user })
@@ -160,7 +160,7 @@ describe('UserRouter', () => {
     // Success
     it(`should return a status code of "${HttpStatusCodes.OK}" if the ` + 
     'request was successful.', done => {
-      const id = dbUsers[0].id;
+      const id = dbUsers[0]._id;
       agent
         .delete(getPath(id))
         .end((_, res) => {

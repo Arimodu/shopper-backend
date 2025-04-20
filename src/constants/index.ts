@@ -9,3 +9,8 @@ export enum NodeEnvs {
   Test = 'test',
   Production = 'production'
 }
+
+export enum DbType {
+  Mongo = 'mongo',
+  Postgres = 'postgres',
+}

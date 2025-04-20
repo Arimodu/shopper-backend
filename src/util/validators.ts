@@ -13,7 +13,7 @@ import { validate, version } from 'uuid';
  * Validates uuid
  */
 export function isValidUUIDv4(arg: unknown): arg is string {
-  return validate(arg) && version(arg) === 4;
+  return validate(arg);
 }
 
 /**
@@ -29,11 +29,3 @@ export function isUserArray(arg: unknown): arg is IUser[] {
 export function isItemArray(arg: unknown): arg is IItem[] {
   return Array.isArray(arg) && arg.every((v, i, a) => User.test(v));
 }
-
-/**
- * Convert to date object then check is a validate date.
- */
-export const transIsDate = transform(
-  arg => new Date(arg as string),
-  arg => isDate(arg),
-);

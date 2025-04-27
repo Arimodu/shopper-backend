@@ -1,5 +1,4 @@
-/* eslint-disable max-len */
-import { Sequelize, DataTypes, Model } from 'sequelize';
+import { Pool, QueryResult } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import ENV from '@src/constants/ENV';
 import { IDbEngine } from './dbEngine';
@@ -8,184 +7,145 @@ import { IItem } from '@src/models/Item';
 import { IList } from '@src/models/List';
 import logger from 'jet-logger';
 
-/******************************************************************************
-                                 Models
-******************************************************************************/
-
-/**
- * We have to extend the IItem interface like this for postgres forein key to work
- */
-interface pgIItem extends IItem {
-    listId: string;
-}
-
-class User extends Model<IUser> {
-  public _id!: string;
-  public name!: string;
-  public bcrypt!: string;
-}
-
-class List extends Model<Omit<Omit<IList, 'invitedUsers'>, 'items'>> {
-  public _id!: string;
-  public name!: string;
-  public owner!: string;
-  public items!: IItem[];
-}
-
-class Item extends Model<pgIItem> {
-  public _id!: string;
-  public listId!: string;
-  public order!: number;
-  public content!: string;
-  public isDone!: boolean;
-}
-
-class ACL extends Model {
-  public listId!: string;
-  public userId!: string;
-}
-
-/******************************************************************************
-                                 Implementation
-******************************************************************************/
-
 export default class PostgreDBEngine implements IDbEngine {
-  private sequelize: Sequelize;
+  private pool: Pool;
 
-  public constructor() {
-    this.sequelize = new Sequelize({
-      dialect: 'postgres',
+  constructor() {
+    this.pool = new Pool({
       host: ENV.DbHost,
       port: ENV.DbPort,
       database: ENV.DbName,
-      username: ENV.DbUser,
+      user: ENV.DbUser,
       password: ENV.DbPassword,
-      logging: (p) => logger.info(p),
     });
   }
 
-  public async connect(): Promise<void> {
-    User.init({
-      _id: { type: DataTypes.UUID, primaryKey: true, defaultValue: uuidv4 },
-      name: { type: DataTypes.STRING, allowNull: false, unique: true },
-      bcrypt: { type: DataTypes.STRING, allowNull: false },
-    }, { sequelize: this.sequelize, modelName: 'User', timestamps: false });
+  async connect(): Promise<void> {
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        _id UUID PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        bcrypt VARCHAR(255) NOT NULL
+      );
 
-    List.init({
-      _id: { type: DataTypes.UUID, primaryKey: true, defaultValue: uuidv4 },
-      name: { type: DataTypes.STRING, allowNull: false },
-      owner: { type: DataTypes.UUID, allowNull: false },
-    }, { sequelize: this.sequelize, modelName: 'List', timestamps: false });
+      CREATE TABLE IF NOT EXISTS lists (
+        _id UUID PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        owner UUID NOT NULL REFERENCES users(_id) ON DELETE CASCADE
+      );
 
-    Item.init({
-      _id: { type: DataTypes.UUID, primaryKey: true, defaultValue: uuidv4 },
-      listId: { type: DataTypes.UUID, allowNull: false },
-      order: { type: DataTypes.INTEGER, allowNull: false },
-      content: { type: DataTypes.STRING, allowNull: false },
-      isDone: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-    }, { sequelize: this.sequelize, modelName: 'Item', timestamps: false });
+      CREATE TABLE IF NOT EXISTS items (
+        _id UUID PRIMARY KEY,
+        listId UUID NOT NULL REFERENCES lists(_id) ON DELETE CASCADE,
+        "order" INTEGER NOT NULL,
+        content VARCHAR(255) NOT NULL,
+        isDone BOOLEAN NOT NULL DEFAULT FALSE
+      );
 
-    ACL.init({
-      listId: { type: DataTypes.UUID, allowNull: false },
-      userId: { type: DataTypes.UUID, allowNull: false },
-    }, { sequelize: this.sequelize, modelName: 'ACL', timestamps: false });
-
-    User.hasMany(List, { foreignKey: 'owner' });
-    List.belongsTo(User, { foreignKey: 'owner', onDelete: 'CASCADE' }); // Cascadingly delete lists when owner is deleted
-    List.hasMany(Item, { foreignKey: 'listId', onDelete: 'CASCADE', as: 'items' }); // Cascadingly delete items when list is deleted
-    Item.belongsTo(List, { foreignKey: 'listId' });
-    List.belongsToMany(User, { through: ACL, foreignKey: 'listId', otherKey: 'userId', onDelete: 'CASCADE' }); // Cascadingly delete ACL records on list removal
-    User.belongsToMany(List, { through: ACL, foreignKey: 'userId', otherKey: 'listId', onDelete: 'CASCADE' }); // Cascadingly delete ACL records on user removal
-
-    await this.sequelize.sync();
+      CREATE TABLE IF NOT EXISTS acl (
+        listId UUID NOT NULL REFERENCES lists(_id) ON DELETE CASCADE,
+        userId UUID NOT NULL REFERENCES users(_id) ON DELETE CASCADE,
+        PRIMARY KEY (listId, userId)
+      );
+    `);
   }
 
-  public async disconnect(): Promise<void> {
-    await this.sequelize.close();
+  async disconnect(): Promise<void> {
+    await this.pool.end();
   }
 
-  public async createUser(name: string, bcrypt: string): Promise<IUser> {
-    return (await User.create({ _id: uuidv4(), name, bcrypt })) as IUser;
+  async createUser(name: string, bcrypt: string): Promise<IUser> {
+    const _id = uuidv4();
+    const res = await this.pool.query(
+      'INSERT INTO users (_id, name, bcrypt) VALUES ($1, $2, $3) RETURNING *',
+      [_id, name, bcrypt]
+    );
+    return res.rows[0];
   }
 
-  public async getUserById(id: string): Promise<IUser | null> {
-    return await User.findByPk(id);
+  async getUserById(id: string): Promise<IUser | null> {
+    const res = await this.pool.query('SELECT * FROM users WHERE _id = $1', [id]);
+    return res.rows[0] || null;
   }
 
-  public async getUserByName(name: string): Promise<IUser | null> {
-    return await User.findOne({ where: { name } });
+  async getUserByName(name: string): Promise<IUser | null> {
+    const res = await this.pool.query('SELECT * FROM users WHERE name = $1', [name]);
+    return res.rows[0] || null;
   }
 
-  public async createList(name: string, owner: string): Promise<IList> {
-    const data = await List.create({ _id: uuidv4(), name, owner });
-    return data as unknown as IList;
+  async createList(name: string, owner: string): Promise<IList> {
+    const _id = uuidv4();
+    const res = await this.pool.query(
+      'INSERT INTO lists (_id, name, owner) VALUES ($1, $2, $3) RETURNING *',
+      [_id, name, owner]
+    );
+    return { ...res.rows[0], items: [], invitedUsers: [] };
   }
 
-  public async getListById(id: string): Promise<IList | null> {
+  async getListById(id: string): Promise<IList | null> {
     try {
-      const list = await List.findByPk(id, {
-        include: [
-          { model: Item, as: 'items' },
-        ],
-      });
-  
-      if (!list) {
+      const listRes = await this.pool.query('SELECT * FROM lists WHERE _id = $1', [id]);
+      if (!listRes.rows[0]) {
         logger.err(`List with ID ${id} not found`);
         return null;
       }
 
-      const aclEntries = await ACL.findAll({
-        where: { listId: id },
-      });
-      const invitedUsers = aclEntries.map((acl) => acl.userId);
-      
-      const result: IList = {
-        _id: list._id,
-        name: list.name,
-        owner: list.owner,
-        items: list.items ?? [],
-        invitedUsers: invitedUsers,
+      const itemsRes = await this.pool.query('SELECT * FROM items WHERE listId = $1', [id]);
+      const aclRes = await this.pool.query('SELECT userId FROM acl WHERE listId = $1', [id]);
+
+      return {
+        _id: listRes.rows[0]._id,
+        name: listRes.rows[0].name,
+        owner: listRes.rows[0].owner,
+        items: itemsRes.rows,
+        invitedUsers: aclRes.rows.map((row) => row.userId),
       };
-  
-      return result;
     } catch (error) {
       logger.err(`Error fetching list by ID ${id}: ${error}`);
       return null;
     }
   }
 
-  public async updateList(list: IList): Promise<IList> {
-    await List.update(list, { where: { _id: list._id } });
+  async updateList(list: IList): Promise<IList> {
+    await this.pool.query(
+      'UPDATE lists SET name = $1, owner = $2 WHERE _id = $3',
+      [list.name, list.owner, list._id]
+    );
     return (await this.getListById(list._id))!;
   }
 
-  public async deleteList(id: string): Promise<void> {
-    await List.destroy({ where: { _id: id } });
+  async deleteList(id: string): Promise<void> {
+    await this.pool.query('DELETE FROM lists WHERE _id = $1', [id]);
   }
 
-  public async addItem(listId: string, order: number, content: string): Promise<IList> {
-    await Item.create({_id: uuidv4(), listId, order, content, isDone: false });
+  async addItem(listId: string, order: number, content: string): Promise<IList> {
+    await this.pool.query(
+      'INSERT INTO items (_id, listId, "order", content, isDone) VALUES ($1, $2, $3, $4, $5)',
+      [uuidv4(), listId, order, content, false]
+    );
     return (await this.getListById(listId))!;
   }
 
-  public async updateItem(listId: string, item: IItem): Promise<IList> {
-    logger.imp(JSON.stringify(item));
-    await Item.update({ order: item.order, content: item.content, isDone: item.isDone }, { where: { _id: item._id }});
+  async updateItem(listId: string, item: IItem): Promise<IList> {
+    await this.pool.query(
+      'UPDATE items SET "order" = $1, content = $2, isDone = $3 WHERE _id = $4',
+      [item.order, item.content, item.isDone, item._id]
+    );
     return (await this.getListById(listId))!;
   }
 
-  public async deleteItem(listId: string, itemId: string): Promise<IList> {
-    await Item.destroy({ where: { _id: itemId } });
+  async deleteItem(listId: string, itemId: string): Promise<IList> {
+    await this.pool.query('DELETE FROM items WHERE _id = $1', [itemId]);
     return (await this.getListById(listId))!;
   }
 
-  public async addUserToList(listId: string, userId: string): Promise<IList> {
-    await ACL.create({ listId, userId });
+  async addUserToList(listId: string, userId: string): Promise<IList> {
+    await this.pool.query('INSERT INTO acl (listId, userId) VALUES ($1, $2)', [listId, userId]);
     return (await this.getListById(listId))!;
   }
 
-  public async removeUserFromList(listId: string, userId: string): Promise<IList> {
-    await ACL.destroy({ where: { listId, userId } });
+  async removeUserFromList(listId: string, userId: string): Promise<IList> {
+    await this.pool.query('DELETE FROM acl WHERE listId = $1 AND userId = $2', [listId, userId]);
     return (await this.getListById(listId))!;
   }
 }

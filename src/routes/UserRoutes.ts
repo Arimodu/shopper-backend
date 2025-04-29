@@ -1,85 +1,64 @@
-/* eslint-disable max-len */
-import { isNumber } from 'jet-validators';
-import { transform } from 'jet-validators/utils';
-
-import HttpStatusCodes from '@src/constants/HttpStatusCodes';
-import User from '@src/models/User';
-
+import { z } from 'zod';
 import { IReq, IRes } from './types';
-import { parseReq } from './util';
+
 import getDbEngine from '@src/db/dbEngine';
-
-
-/******************************************************************************
-                                Constants
-******************************************************************************/
+import { hashPassword } from '@src/util/authHelper';
 
 const Validators = {
-  update: parseReq({ user: User.test }),
-  delete: parseReq({ id: transform(Number, isNumber) }),
+  query: z.object({
+    queryString: z.string(),
+  }),
+  update: z.object({
+    name: z.string().optional(),
+    password: z.string().optional(), 
+  }),
 } as const;
 
+async function me(req: IReq, res: IRes) {
+  const user = req.session.user!;
+  res.status(200).json({
+    _id: user._id,
+    name: user.name
+  });
+}
 
-/******************************************************************************
-                                Functions
-******************************************************************************/
+//async function query(req: IReq, res: IRes) {
+//  
+//}
 
 async function update(req: IReq, res: IRes) {
-  const { user } = Validators.update(req.body);
-  const sessionUser = req.session.user!;
+  const { name, password } = Validators.update.parse(req.body);
+  const user = req.session.user!;
 
   const dbEngine = getDbEngine();
-  const existingUser = await dbEngine.getUserById(user._id);
+  const data = await dbEngine.updateUser(user._id, name, password ? await hashPassword(password) : undefined);
 
-  if (!existingUser) {
-    res.status(HttpStatusCodes.NOT_FOUND).send(`Could not find user ${user._id}`);
-    return;
+  // Log out the user if the password changed
+  if (password && data) {
+    req.session.destroy((err) => console.error(err));
   }
 
-  // Check if the session user is authorized to update this user
-  if (sessionUser._id !== user._id) {
-    res.status(HttpStatusCodes.UNAUTHORIZED).send('You can only update yourself');
-    return;
-  }
-
-  // Update user fields
-  existingUser.name = user.name;
-  // Note: Password and other field updates will be set later
-  
-  // Requires DB implementation
-  //const data = await dbEngine.updateUser(existingUser);
-  //res.status(HttpStatusCodes.OK).json(data);
+  res.status(data ? 200 : 500).json(data ? {
+    _id: data._id,
+    name: data.name
+  } : {
+    error: 'Internal server error'
+  });
 }
 
 async function delete_(req: IReq, res: IRes) {
-  const { id } = Validators.delete(req.params);
-  const sessionUser = req.session.user!;
+  const user = req.session.user!;
 
   const dbEngine = getDbEngine();
-  const existingUser = await dbEngine.getUserById(id.toString());
-
-  if (!existingUser) {
-    res.status(HttpStatusCodes.NOT_FOUND).send(`Could not find user ${id}`);
-    return;
-  }
-
-  // Check if the session user is authorized to delete this user
-  if (sessionUser._id !== id.toString()) {
-    res.status(HttpStatusCodes.UNAUTHORIZED).send('You are not authorized to delete this user');
-    return;
-  }
-
-  // Requires DB implementation
-  //const result = await dbEngine.deleteUser(id.toString());
-  //res.status(HttpStatusCodes.OK).send(result);
+  const data = await dbEngine.deleteUser(user._id);
+  req.session.destroy((err) => console.error(err));
+  res.status(data ? 200 : 500).send(data ? null : {
+    error: 'Internal server error'
+  });
 }
 
-
-/******************************************************************************
-                                Export default
-******************************************************************************/
-
 export default {
+  me,
   update,
   delete: delete_,
 } as const;

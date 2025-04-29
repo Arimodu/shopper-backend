@@ -1,63 +1,56 @@
 import bcrypt from 'bcrypt';
-import HttpStatusCodes from '@src/constants/HttpStatusCodes';
 import getDbEngine from '@src/db/dbEngine';
 import { IReq, IRes } from './types';
-import { parseReq } from './util';
-import { isString } from 'jet-validators';
-
-/******************************************************************************
-                                Constants
-******************************************************************************/
+import { z } from 'zod';
+import { hashPassword } from '@src/util/authHelper';
 
 const Validators = {
-  login: parseReq({ name: isString, password: isString }),
-  register: parseReq({ name: isString, password: isString }),
+  login: z.object({
+    name: z.string(),
+    password: z.string(),
+  }),
+  register: z.object({
+    name: z.string(),
+    password: z.string(),
+  }),
 } as const;
 
-/******************************************************************************
-                                Routes
-******************************************************************************/
-
 async function login(req: IReq, res: IRes) {
-  const { name, password } = Validators.login(req.body);
+  const { name, password } = Validators.login.parse(req.body);
   const dbEngine = getDbEngine();
 
   const user = await dbEngine.getUserByName(name);
   if (!user) {
-    res.status(HttpStatusCodes.NOT_FOUND).send('User not found');
+    res.status(404).send('User not found');
     return;
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.bcrypt);
   if (!isPasswordValid) {
-    res.status(HttpStatusCodes.UNAUTHORIZED).send('Invalid password');
+    res.status(401).send('Invalid password');
     return;
   }
 
   req.session.user = user;
-  res.status(HttpStatusCodes.OK).json(user);
+  res.status(200).json(user);
 }
 
 async function register(req: IReq, res: IRes) {
-  const { name, password } = Validators.register(req.body);
+  const { name, password } = Validators.register.parse(req.body);
   const dbEngine = getDbEngine();
 
   const existingUser = await dbEngine.getUserByName(name);
   if (existingUser) {
-    res.status(HttpStatusCodes.CONFLICT).send('Username already exists');
+    res.status(409).send('Username already exists');
     return;
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await hashPassword(password);
   const user = await dbEngine.createUser(name, hashedPassword);
 
   req.session.user = user;
-  res.status(HttpStatusCodes.CREATED).json(user);
+  res.status(201).json(user);
 }
-
-/******************************************************************************
-                                Export
-******************************************************************************/
 
 export default {
   login,

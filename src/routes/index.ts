@@ -1,50 +1,35 @@
 import { Router } from 'express';
 
-import Paths from '@src/constants/Paths';
 import UserRoutes from './UserRoutes';
 import ListRoutes from './ListRoutes';
 import ItemRoutes from './ItemRoutes';
 
-
-/******************************************************************************
-                                Setup
-******************************************************************************/
-
-// Base router
+// /api/v1
 const apiRouter = Router();
 
-// List Router
 const listRouter = Router();
+listRouter.get('/:listId', ListRoutes.get);
+listRouter.patch('/:listId', ListRoutes.patch);
+listRouter.delete('/:listId', ListRoutes.delete);
+listRouter.post('/create', ListRoutes.create);
 
-listRouter.get(Paths.List.Id, ListRoutes.get);
-listRouter.patch(Paths.List.Id, ListRoutes.patch);
-listRouter.delete(Paths.List.Id, ListRoutes.delete);
-listRouter.post(Paths.List.Create, ListRoutes.create);
-
-// Items Router
 const itemsRouter = Router();
-
-//itemsRouter.get(Paths.Items.Id, );
-itemsRouter.post(Paths.Items.Create, ItemRoutes.create);
-itemsRouter.patch(Paths.Items.Id, ItemRoutes.patch);
-itemsRouter.delete(Paths.Items.Id, ItemRoutes.delete);
+itemsRouter.get('/:itemId', ItemRoutes.get);
+itemsRouter.post('/create', ItemRoutes.create);
+itemsRouter.patch('/:itemId', ItemRoutes.patch);
+itemsRouter.delete('/:itemId', ItemRoutes.delete);
 
 // UserRouter
 const userRouter = Router();
 
-//userRouter.get(Paths.Users.Get, UserRoutes.getAll);
-userRouter.patch(Paths.Users.Update, UserRoutes.update);
-userRouter.delete(Paths.Users.Delete, UserRoutes.delete);
+userRouter.get('/me', UserRoutes.me);
+//userRouter.get('/query', UserRoutes.query);
+userRouter.patch('/update', UserRoutes.update);
+userRouter.delete('/delete', UserRoutes.delete);
 
 // BindRouters
-apiRouter.use(Paths.Users.Base, userRouter);
-apiRouter.use(Paths.List.Base, listRouter);
-apiRouter.use(Paths.Items.Base, itemsRouter);
-
-
-
-/******************************************************************************
-                                Export default
-******************************************************************************/
+apiRouter.use('/user', userRouter);
+apiRouter.use('/list', listRouter);
+apiRouter.use('/items', itemsRouter);
 
 export default apiRouter;

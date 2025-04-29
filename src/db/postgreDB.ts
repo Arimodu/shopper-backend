@@ -1,23 +1,25 @@
-import { Pool, QueryResult } from 'pg';
+import { Pool } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
-import ENV from '@src/constants/ENV';
 import { IDbEngine } from './dbEngine';
 import { IUser } from '@src/models/User';
 import { IItem } from '@src/models/Item';
 import { IList } from '@src/models/List';
-import logger from 'jet-logger';
 
 export default class PostgreDBEngine implements IDbEngine {
   private pool: Pool;
 
   constructor() {
     this.pool = new Pool({
-      host: ENV.DbHost,
-      port: ENV.DbPort,
-      database: ENV.DbName,
-      user: ENV.DbUser,
-      password: ENV.DbPassword,
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT),
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
     });
+  }
+
+  getPool() : Pool {
+    return this.pool;
   }
 
   async connect(): Promise<void> {
@@ -73,6 +75,50 @@ export default class PostgreDBEngine implements IDbEngine {
     return res.rows[0] || null;
   }
 
+  async updateUser(userId: string, name?: string, bcrypt?: string): Promise<IUser | null> {
+    const updates: string[] = [];
+    const values: (string | undefined)[] = [userId];
+    let paramIndex = 2;
+
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex}`);
+      values.push(name);
+      paramIndex++;
+    }
+    if (bcrypt !== undefined) {
+      updates.push(`bcrypt = $${paramIndex}`);
+      values.push(bcrypt);
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      return await this.getUserById(userId);
+    }
+
+    try {
+      const query = `UPDATE users SET ${updates.join(', ')} WHERE _id = $1 RETURNING _id, name, bcrypt`;
+      const res = await this.pool.query(query, values);
+      if (!res.rows[0]) {
+        console.error(`No user found with ID ${userId} for update`);
+        return null;
+      }
+
+      return {
+        _id: res.rows[0]._id,
+        name: res.rows[0].name,
+        bcrypt: res.rows[0].bcrypt,
+      };
+    } catch (error) {
+      console.error(`Error updating user with ID ${userId}: ${error}`);
+      return null;
+    }
+  }
+
+  async deleteUser(userId: string): Promise<boolean> {
+    const res = await this.pool.query('DELETE FROM users WHERE _id = $1 RETURNING _id', [userId]);
+    return (res.rowCount !== null && res.rowCount > 0);
+  }
+
   async createList(name: string, owner: string): Promise<IList> {
     const _id = uuidv4();
     const res = await this.pool.query(
@@ -86,7 +132,7 @@ export default class PostgreDBEngine implements IDbEngine {
     try {
       const listRes = await this.pool.query('SELECT * FROM lists WHERE _id = $1', [id]);
       if (!listRes.rows[0]) {
-        logger.err(`List with ID ${id} not found`);
+        console.error(`List with ID ${id} not found`);
         return null;
       }
 
@@ -97,25 +143,102 @@ export default class PostgreDBEngine implements IDbEngine {
         _id: listRes.rows[0]._id,
         name: listRes.rows[0].name,
         owner: listRes.rows[0].owner,
-        items: itemsRes.rows,
+        items: itemsRes.rows.map((row) => ({
+          _id: row._id,
+          order: row.order,
+          content: row.content,
+          isDone: row.isDone,
+        })),
         invitedUsers: aclRes.rows.map((row) => row.userId),
       };
     } catch (error) {
-      logger.err(`Error fetching list by ID ${id}: ${error}`);
+      console.error(`Error fetching list by ID ${id}: ${error}`);
       return null;
     }
   }
 
-  async updateList(list: IList): Promise<IList> {
-    await this.pool.query(
-      'UPDATE lists SET name = $1, owner = $2 WHERE _id = $3',
-      [list.name, list.owner, list._id]
-    );
-    return (await this.getListById(list._id))!;
+  async getListByItemId(itemId: string): Promise<IList | null> {
+    try {
+      const itemRes = await this.pool.query('SELECT listId FROM items WHERE _id = $1', [itemId]);
+      if (!itemRes.rows[0]) {
+        console.error(`No item found with ID ${itemId}`);
+        return null;
+      }
+      const listId = itemRes.rows[0].listId;
+
+      return await this.getListById(listId);
+    } catch (error) {
+      console.error(`Error fetching list by item ID ${itemId}: ${error}`);
+      return null;
+    }
   }
 
-  async deleteList(id: string): Promise<void> {
-    await this.pool.query('DELETE FROM lists WHERE _id = $1', [id]);
+  async updateList(listId: string, name?: string, owner?: string): Promise<IList | null> {
+    const updates: string[] = [];
+    const values: (string | undefined)[] = [listId];
+    let paramIndex = 2;
+
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex}`);
+      values.push(name);
+      paramIndex++;
+    }
+    if (owner !== undefined) {
+      updates.push(`owner = $${paramIndex}`);
+      values.push(owner);
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      return await this.getListById(listId);
+    }
+
+    try {
+      const query = `UPDATE lists SET ${updates.join(', ')} WHERE _id = $1 RETURNING _id, name, owner`;
+      const res = await this.pool.query(query, values);
+      if (!res.rows[0]) {
+        console.error(`No list found with ID ${listId} for update`);
+        return null;
+      }
+
+      const itemsRes = await this.pool.query('SELECT * FROM items WHERE listId = $1', [listId]);
+      const aclRes = await this.pool.query('SELECT userId FROM acl WHERE listId = $1', [listId]);
+
+      return {
+        _id: res.rows[0]._id,
+        name: res.rows[0].name,
+        owner: res.rows[0].owner,
+        items: itemsRes.rows.map((row) => ({
+          _id: row._id,
+          order: row.order,
+          content: row.content,
+          isDone: row.isDone,
+        })),
+        invitedUsers: aclRes.rows.map((row) => row.userId),
+      };
+    } catch (error) {
+      console.error(`Error updating list with ID ${listId}: ${error}`);
+      return null;
+    }
+  }
+
+  async deleteList(id: string): Promise<boolean> {
+    const res = await this.pool.query('DELETE FROM lists WHERE _id = $1 RETURNING _id', [id]);
+    return (res.rowCount !== null && res.rowCount > 0);
+  }
+
+  async getItemById(itemId: string): Promise<IItem | null> {
+    const res = await this.pool.query('SELECT _id, "order", content, isDone FROM items WHERE _id = $1', [itemId]);
+    if (!res.rows[0]) {
+      console.error(`No item found with ID ${itemId}`);
+      return null;
+    }
+    return {
+      _id: res.rows[0]._id,
+      order: res.rows[0].order,
+      content: res.rows[0].content,
+      isDone: res.rows[0].isDone,
+    };
   }
 
   async addItem(listId: string, order: number, content: string): Promise<IList> {
@@ -126,17 +249,59 @@ export default class PostgreDBEngine implements IDbEngine {
     return (await this.getListById(listId))!;
   }
 
-  async updateItem(listId: string, item: IItem): Promise<IList> {
-    await this.pool.query(
-      'UPDATE items SET "order" = $1, content = $2, isDone = $3 WHERE _id = $4',
-      [item.order, item.content, item.isDone, item._id]
-    );
-    return (await this.getListById(listId))!;
+  async updateItem(itemId: string, order?: number, content?: string, isDone?: boolean): Promise<IList | null> {
+    const updates: string[] = [];
+    const values: (string | number | boolean | undefined)[] = [itemId];
+    let paramIndex = 2;
+
+    if (order !== undefined) {
+      updates.push(`"order" = $${paramIndex}`);
+      values.push(order);
+      paramIndex++;
+    }
+    if (content !== undefined) {
+      updates.push(`content = $${paramIndex}`);
+      values.push(content);
+      paramIndex++;
+    }
+    if (isDone !== undefined) {
+      updates.push(`isDone = $${paramIndex}`);
+      values.push(isDone);
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      const item = await this.getItemById(itemId);
+      if (!item) {
+        console.error(`No item found with ID ${itemId}`);
+        return null;
+      }
+      const list = await this.getListById((await this.pool.query('SELECT listId FROM items WHERE _id = $1', [itemId])).rows[0]?.listId);
+      if (!list) {
+        console.error(`Orphaned item id: ${itemId} has not been found... Your database is fucked, this state should never happen. Please fix your DB manually.`);
+        return null;
+      }
+      return list;
+    }
+
+    try {
+      const query = `UPDATE items SET ${updates.join(', ')} WHERE _id = $1 RETURNING listId`;
+      const res = await this.pool.query(query, values);
+      if (!res.rows[0]) {
+        console.error(`No item found with ID ${itemId} for update`);
+        return null;
+      }
+      
+      return await this.getListById(res.rows[0].listId);
+    } catch (error) {
+      console.error(`Error updating item with ID ${itemId}: ${error}`);
+      return null;
+    }
   }
 
-  async deleteItem(listId: string, itemId: string): Promise<IList> {
-    await this.pool.query('DELETE FROM items WHERE _id = $1', [itemId]);
-    return (await this.getListById(listId))!;
+  async deleteItem(itemId: string): Promise<boolean> {
+    const res = await this.pool.query('DELETE FROM items WHERE _id = $1 RETURNING listId', [itemId]);
+    return (res.rowCount !== null && res.rowCount > 0);
   }
 
   async addUserToList(listId: string, userId: string): Promise<IList> {

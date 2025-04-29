@@ -1,42 +1,39 @@
 /* eslint-disable max-len */
-import { isBoolean, isNumber, isString } from 'jet-validators';
-
-import HttpStatusCodes from '@src/constants/HttpStatusCodes';
 import getDbEngine from '@src/db/dbEngine';
-
 import { IReq, IRes } from './types';
-import { parseReq } from './util';
-import { isValidUUIDv4 } from '@src/util/validators';
+import { z } from 'zod';
 
-
-/******************************************************************************
-                                Constants
-******************************************************************************/
 
 const Validators = {
-  param: parseReq({ itemId: isValidUUIDv4 }),
-  create: parseReq({ listId: isValidUUIDv4, order: isNumber, content: isString }),
-  patch: parseReq({ listId: isValidUUIDv4, order: isNumber, content: isString, isDone: isBoolean}),
-  delete: parseReq({ listId: isValidUUIDv4, itemId: isValidUUIDv4 }),
+  param: z.object({
+    itemId: z.string().uuid(),
+  }),
+  create: z.object({
+    listId: z.string().uuid(),
+    order: z.number(),
+    content: z.string(),
+  }),
+  patch: z.object({
+    order: z.number().optional(),
+    content: z.string().optional(),
+    isDone: z.boolean().optional(),
+  }),
+  delete: z.object({
+    listId: z.string().uuid(),
+    itemId: z.string().uuid(),
+  }),
 } as const;
 
 
-/******************************************************************************
-                                Functions
-******************************************************************************/
-
-// Possibly implement later - requires DB impl
-/*async function get(req: IReq, res: IRes) {
-  const listId = req.params.listId as string;
-  const itemId = req.params.itemId as string;
-  if (!listId || !itemId) throw new ValidationError([]);
+async function get(req: IReq, res: IRes) {
+  const { itemId } = Validators.param.parse(req.body);
   const dbEngine = getDbEngine();
-  const data = await dbEngine.getListById(listId);
-  res.status(HttpStatusCodes.OK).json(data);
-}*/
+  const data = await dbEngine.getItemById(itemId);
+  res.status(200).json(data);
+}
 
 async function create(req: IReq, res: IRes) {
-  const { listId, order, content } = Validators.create(req.body);
+  const { listId, order, content } = Validators.create.parse(req.body);
 
   const dbEngine = getDbEngine();
   const list = await dbEngine.getListById(listId);
@@ -44,82 +41,66 @@ async function create(req: IReq, res: IRes) {
   const user = req.session.user!;
 
   if (!list) {
-    res.status(HttpStatusCodes.NOT_FOUND).send(`Could not find list ${listId}`);
+    res.status(404).send(`Could not find list ${listId}`);
     return;
   }
 
   if (list.owner != user._id && !list.invitedUsers.includes(user._id)) {
-    res.status(HttpStatusCodes.UNAUTHORIZED).send('You are not invited or owner of this list');
+    res.status(401).send('You are not invited or owner of this list');
     return;
   }
 
   const data = await dbEngine.addItem(listId, order, content);
-  res.status(HttpStatusCodes.CREATED).json(data);
+  res.status(201).json(data);
 }
 
 async function patch(req: IReq, res: IRes) {
-  const { itemId } = Validators.param(req.params);
-  const { listId, order, content, isDone } = Validators.patch(req.body);
+  const { itemId } = Validators.param.parse(req.params);
+  const { order, content, isDone } = Validators.patch.parse(req.body);
 
   const dbEngine = getDbEngine();
-  const list = await dbEngine.getListById(listId);
+  const list = await dbEngine.getListByItemId(itemId);
 
   const user = req.session.user!;
 
   if (!list) {
-    res.status(HttpStatusCodes.NOT_FOUND).send(`Could not find list ${listId}`);
+    res.status(404).send(`Could not find list containing item ${itemId}`);
     return;
   }
 
   if (list.owner != user._id && !list.invitedUsers.includes(user._id)) {
-    res.status(HttpStatusCodes.UNAUTHORIZED).send('You are not invited or owner of this list');
-    return;
-  }  
-
-  const item = list.items.find((item) => item._id == itemId);
-
-  if (!item) {
-    res.status(HttpStatusCodes.NOT_FOUND).send(`Could not find item ${itemId}`);
+    res.status(401).send('You are not invited or owner of this list');
     return;
   }
 
-  item.content = content;
-  item.isDone = isDone;
-  item.order = order;
-
-  const data = await dbEngine.updateItem(listId, item);
-  res.status(HttpStatusCodes.OK).json(data);
+  const data = await dbEngine.updateItem(itemId, order, content, isDone);
+  res.status(data ? 200 : 500).json(data ?? { error: 'Internal server error'});
 }
 
 async function delete_(req: IReq, res: IRes) {
-  const { itemId } = Validators.param(req.params);
-  const { listId } = Validators.delete(req.body);
+  const { itemId } = Validators.param.parse(req.params);
 
   const dbEngine = getDbEngine();
-  const list = await dbEngine.getListById(listId);
+  const list = await dbEngine.getListByItemId(itemId);
 
   const user = req.session.user!;
 
   if (!list) {
-    res.status(HttpStatusCodes.NOT_FOUND).send(`Could not find list ${listId}`);
+    res.status(404).send(`Could not find list containing item ${itemId}`);
     return;
   }
 
   if (list.owner != user._id && !list.invitedUsers.includes(user._id)) {
-    res.status(HttpStatusCodes.UNAUTHORIZED).send('You are not invited or owner of this list');
+    res.status(401).send('You are not invited or owner of this list');
     return;
   }
 
-  const data = await dbEngine.deleteItem(listId, itemId);
-  res.status(HttpStatusCodes.OK).send(data);
+  const data = await dbEngine.deleteItem(itemId);
+  res.status(data ? 200 : 500).send();
 }
 
-/******************************************************************************
-                                Export default
-******************************************************************************/
-
 export default {
-  //get,
+  get,
   create,
   patch,
   delete: delete_,

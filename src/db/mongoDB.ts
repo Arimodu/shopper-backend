@@ -1,16 +1,9 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable max-len */
 import mongoose, { Schema, model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-import ENV from '@src/constants/ENV';
 import { IDbEngine } from './dbEngine';
 import { IUser } from '@src/models/User';
 import { IItem } from '@src/models/Item';
 import { IList } from '@src/models/List';
-
-/******************************************************************************
-                                 Schemas
-******************************************************************************/
 
 const ItemSchema = new Schema({
   _id: { type: String, default: uuidv4 },
@@ -36,13 +29,9 @@ const ListSchema = new Schema({
 const User = model('User', UserSchema);
 const List = model('List', ListSchema);
 
-/******************************************************************************
-                                 Implementation
-******************************************************************************/
-
 export default class MongoDBEngine implements IDbEngine {
   public async connect(): Promise<void> {
-    const url = `mongodb://${ENV.DbUser}:${ENV.DbPassword}@${ENV.DbHost}:${ENV.DbPort}/${ENV.DbName}`;
+    const url = `mongodb://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
     await mongoose.connect(url);
   }
 
@@ -62,6 +51,18 @@ export default class MongoDBEngine implements IDbEngine {
     return await User.findOne({ name });
   }
 
+  public async updateUser(userId: string, name?: string, bcrypt?: string): Promise<IUser | null> {
+    const update: { name?: string; bcrypt?: string } = {};
+    if (name) update.name = name;
+    if (bcrypt) update.bcrypt = bcrypt;
+    return await User.findByIdAndUpdate(userId, { $set: update }, { new: true });
+  }
+
+  public async deleteUser(userId: string): Promise<boolean> {
+    const result =  await User.findByIdAndDelete(userId);
+    return !!result;
+  }
+
   public async createList(name: string, owner: string): Promise<IList> {
     return (await List.create({ _id: uuidv4(), name, owner, items: [], invitedUsers: [] })) as unknown as IList;
   }
@@ -70,36 +71,59 @@ export default class MongoDBEngine implements IDbEngine {
     return await List.findById(id);
   }
 
-  public async updateList(list: IList): Promise<IList> {
-    return (await List.findByIdAndUpdate(list._id, list, { new: true }))!;
+  public async updateList(listId: string, name?: string, owner?: string): Promise<IList | null> {
+    const update: { name?: string; owner?: string } = {};
+    if (name) update.name = name;
+    if (owner) update.owner = owner;
+    return await List.findByIdAndUpdate(listId, { $set: update }, { new: true });
   }
 
-  public async deleteList(id: string): Promise<void> {
-    await List.findByIdAndDelete(id);
+  public async deleteList(id: string): Promise<boolean> {
+    const result = await List.findByIdAndDelete(id);
+    return !!result;
+  }
+
+  public async getItemById(itemId: string): Promise<IItem | null> {
+    const list = await List.findOne({ 'items._id': itemId }, { 'items.$': 1 });
+    return list?.items[0] || null;
+  }
+
+  public async getListByItemId(itemId: string): Promise<IList | null> {
+    const list = await List.findOne({ 'items._id': itemId });
+    if (!list) {
+      console.error(`No list found containing item with ID ${itemId}`);
+      return null;
+    }
+    return list;
   }
 
   public async addItem(listId: string, order: number, content: string): Promise<IList> {
     return (await List.findByIdAndUpdate(
       listId,
-      { $push: { items: { order, content } } }, // This is why Mongodb SUCKSSSSSS!!! Why modify a whole list when adding an item
+      { $push: { items: { _id: uuidv4(), order, content, isDone: false } } },
       { new: true },
     ))!;
   }
 
-  public async updateItem(listId: string, item: IItem): Promise<IList> {
-    return (await List.findOneAndUpdate(
-      { _id: listId, 'items._id': item._id },
-      { $set: { 'items.$': item } },
+  public async updateItem(itemId: string, order?: number, content?: string, isDone?: boolean): Promise<IList | null> {
+    const update: { 'items.$.order'?: number; 'items.$.content'?: string; 'items.$.isDone'?: boolean } = {};
+    if (order) update['items.$.order'] = order;
+    if (content) update['items.$.content'] = content;
+    if (isDone !== undefined) update['items.$.isDone'] = isDone; // This caused a headache... if (bool) right, yea, thats gonna check if the bool is null, ofc you dumbass
+    return await List.findOneAndUpdate(
+      { 'items._id': itemId },
+      { $set: update },
       { new: true },
-    ))!;
+    );
   }
 
-  public async deleteItem(listId: string, itemId: string): Promise<IList> {
-    return (await List.findByIdAndUpdate(
-      listId,
+  public async deleteItem(itemId: string): Promise<boolean> {
+    const result = await List.findOneAndUpdate(
+      { 'items._id': itemId },
       { $pull: { items: { _id: itemId } } },
       { new: true },
-    ))!;
+    );
+    return !!result;
   }
 
   public async addUserToList(listId: string, userId: string): Promise<IList> {

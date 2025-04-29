@@ -1,48 +1,52 @@
 /* eslint-disable max-len */
-import { isString } from 'jet-validators';
-
-import HttpStatusCodes from '@src/constants/HttpStatusCodes';
 import getDbEngine from '@src/db/dbEngine';
 
 import { IReq, IRes } from './types';
-import { parseReq } from './util';
-import { isValidUUIDv4 } from '@src/util/validators';
-
-
-/******************************************************************************
-                                Constants
-******************************************************************************/
+import { z } from 'zod';
 
 const Validators = {
-  get: parseReq({ listId: isValidUUIDv4 }),
-  create: parseReq({ listName: isString }),
-  patch: parseReq({ name: isString, owner: isValidUUIDv4}),
-  patchParams: parseReq({ listId: isValidUUIDv4 }),
-  delete_: parseReq({ listId: isValidUUIDv4 }),
+  param: z.object({
+    listId: z.string().uuid(),
+  }),
+  create: z.object({
+    listName: z.string(),
+  }),
+  patch: z.object({
+    name: z.string().optional(),
+    owner: z.string().uuid().optional(),
+  }),
 } as const;
 
-
-/******************************************************************************
-                                Functions
-******************************************************************************/
-
 async function get(req: IReq, res: IRes) {
-  const { listId } = Validators.get(req.params);
+  const { listId } = Validators.param.parse(req.params);
   const dbEngine = getDbEngine();
-  const data = await dbEngine.getListById(listId);
-  res.status(HttpStatusCodes.OK).json(data);
+  const list = await dbEngine.getListById(listId);
+
+  const user = req.session.user!;
+
+  if (!list) {
+    res.status(404).send(`Could not find list ${listId}`);
+    return;
+  }
+
+  if (list.owner != user._id && !list.invitedUsers.includes(user._id)) {
+    res.status(401).send('You are not invited or owner of this list');
+    return;
+  }
+
+  res.status(200).json(list);
 }
 
 async function create(req: IReq, res: IRes) {
-  const { listName } = Validators.create(req.body);
+  const { listName } = Validators.create.parse(req.body);
   const dbEngine = getDbEngine();
   const data = await dbEngine.createList(listName, req.session.user!._id); // Set current user as owner
-  res.status(HttpStatusCodes.CREATED).json(data);
+  res.status(201).json(data);
 }
 
 async function patch(req: IReq, res: IRes) {
-  const { listId } = Validators.patchParams(req.params);
-  const { name, owner } = Validators.patch(req.body);
+  const { listId } = Validators.param.parse(req.params);
+  const { name, owner } = Validators.patch.parse(req.body);
 
   const user = req.session.user!;
 
@@ -50,34 +54,41 @@ async function patch(req: IReq, res: IRes) {
   const list = await dbEngine.getListById(listId);
 
   if (!list) {
-    res.status(HttpStatusCodes.NOT_FOUND).send(`Could not find list ${listId}`);
+    res.status(404).send(`Could not find list ${listId}`);
     return;
   }
 
   if (list.owner != user._id) {
-    res.status(HttpStatusCodes.UNAUTHORIZED).send('Only the owner can edit a list');
+    res.status(401).send('Only the owner can edit a list');
     return;
   }
 
-  list.name = name;
-  list.owner = owner;
+  const data = await dbEngine.updateList(listId, name, owner);
 
-  const data = await dbEngine.updateList(list);
-
-  res.status(HttpStatusCodes.OK).json(data);
+  res.status(data ? 200 : 500).json(data ?? { error: 'Internal server error'});
 }
 
 async function delete_(req: IReq, res: IRes) {
-  const { listId } = Validators.delete_(req.params);
+  const { listId } = Validators.param.parse(req.params);
 
   const dbEngine = getDbEngine();
-  const data = await dbEngine.deleteList(listId);
-  res.status(HttpStatusCodes.OK).send(data);
-}
+  const list = await dbEngine.getListById(listId);
 
-/******************************************************************************
-                                Export default
-******************************************************************************/
+  const user = req.session.user!;
+
+  if (!list) {
+    res.status(404).send(`Could not find list ${listId}`);
+    return;
+  }
+
+  if (list.owner != user._id) {
+    res.status(401).send('Only the owner can delete a list');
+    return;
+  }
+
+  const data = await dbEngine.deleteList(listId);
+  res.status(data ? 200 : 500).json(data ?? { error: 'Internal server error'});
+}
 
 export default {
   get,

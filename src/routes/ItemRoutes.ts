@@ -29,6 +29,12 @@ async function get(req: IReq, res: IRes) {
   const { itemId } = Validators.param.parse(req.body);
   const dbEngine = getDbEngine();
   const data = await dbEngine.getItemById(itemId);
+
+  if (!data) {
+    res.status(404).send(`Could not find item ${itemId}`);
+    return;
+  }
+
   res.status(200).json(data);
 }
 

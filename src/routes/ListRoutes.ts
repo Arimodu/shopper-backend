@@ -15,6 +15,10 @@ const Validators = {
     name: z.string().optional(),
     owner: z.string().uuid().optional(),
   }),
+  acl: z.object({
+    listId: z.string().uuid(),
+    userId: z.string().uuid(),
+  })
 } as const;
 
 async function get(req: IReq, res: IRes) {
@@ -68,6 +72,60 @@ async function patch(req: IReq, res: IRes) {
   res.status(data ? 200 : 500).json(data ?? { error: 'Internal server error'});
 }
 
+async function addUser(req: IReq, res: IRes) {
+  const { listId, userId } = Validators.acl.parse(req.body);
+
+  const currentUser = req.session.user!;
+  
+  const dbEngine = getDbEngine();
+  const list = await dbEngine.getListById(listId);
+
+  if (!list) {
+    res.status(404).send(`Could not find list ${listId}`);
+    return;
+  }
+
+  if (list.owner != currentUser._id) {
+    res.status(401).send('Only the owner can add to the acl');
+    return;
+  }
+
+  if (currentUser._id === userId) {
+    res.status(400).send('You cannot add yourself to your own list');
+    return;
+  }
+
+  const data = dbEngine.addUserToList(listId, userId);
+  res.status(200).json(data);
+}
+
+async function removeUser(req: IReq, res: IRes) {
+  const { listId, userId } = Validators.acl.parse(req.body);
+
+  const currentUser = req.session.user!;
+  
+  const dbEngine = getDbEngine();
+  const list = await dbEngine.getListById(listId);
+
+  if (!list) {
+    res.status(404).send(`Could not find list ${listId}`);
+    return;
+  }
+
+  if (list.owner != currentUser._id && userId != currentUser._id) {
+    res.status(401).send('Only the owner can remove other users from the acl');
+    return;
+  }
+
+  if (list.owner === userId) {
+    res.status(400).send('You cannot remove yourself from the list as the owner');
+    return;
+  }
+
+  const data = dbEngine.removeUserFromList(listId, userId);
+  res.status(200).json(data);
+}
+
 async function delete_(req: IReq, res: IRes) {
   const { listId } = Validators.param.parse(req.params);
 
@@ -94,5 +152,7 @@ export default {
   get,
   create,
   patch,
+  addUser,
+  removeUser,
   delete: delete_,
 } as const;

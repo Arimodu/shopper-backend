@@ -12,6 +12,8 @@ listRouter.get('/:listId', ListRoutes.get);
 listRouter.patch('/:listId', ListRoutes.patch);
 listRouter.delete('/:listId', ListRoutes.delete);
 listRouter.post('/create', ListRoutes.create);
+listRouter.put('/acl', ListRoutes.addUser);
+listRouter.delete('/acl', ListRoutes.removeUser);
 
 const itemsRouter = Router();
 itemsRouter.get('/:itemId', ItemRoutes.get);
@@ -24,12 +26,12 @@ const userRouter = Router();
 
 userRouter.get('/me', UserRoutes.me);
 //userRouter.get('/query', UserRoutes.query);
-userRouter.patch('/update', UserRoutes.update);
-userRouter.delete('/delete', UserRoutes.delete);
+userRouter.patch('/me', UserRoutes.update);
+userRouter.delete('/me', UserRoutes.delete);
 
 // BindRouters
 apiRouter.use('/user', userRouter);
 apiRouter.use('/list', listRouter);
-apiRouter.use('/items', itemsRouter);
+apiRouter.use('/item', itemsRouter);
 
 export default apiRouter;

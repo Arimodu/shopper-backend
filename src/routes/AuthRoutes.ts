@@ -32,7 +32,10 @@ async function login(req: IReq, res: IRes) {
   }
 
   req.session.user = user;
-  res.status(200).json(user);
+  res.status(200).json({
+    _id: user._id,
+    name: user.name,
+  });
 }
 
 async function register(req: IReq, res: IRes) {
@@ -49,7 +52,10 @@ async function register(req: IReq, res: IRes) {
   const user = await dbEngine.createUser(name, hashedPassword);
 
   req.session.user = user;
-  res.status(201).json(user);
+  res.status(201).json({
+    _id: user._id,
+    name: user.name,
+  });
 }
 
 export default {

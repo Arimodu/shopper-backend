@@ -14,7 +14,7 @@ const Validators = {
   }),
 } as const;
 
-async function me(req: IReq, res: IRes) {
+function me(req: IReq, res: IRes) {
   const user = req.session.user!;
   res.status(200).json({
     _id: user._id,
@@ -51,8 +51,11 @@ async function delete_(req: IReq, res: IRes) {
 
   const dbEngine = getDbEngine();
   const data = await dbEngine.deleteUser(user._id);
-  req.session.destroy((err) => console.error(err));
-  res.status(data ? 200 : 500).send(data ? null : {
+  req.session.destroy((err) => {
+     console.info('Session cleared');
+     if (err) console.error(err);
+  });
+  res.clearCookie('connect.sid').status(data ? 200 : 500).send(data ? null : {
     error: 'Internal server error'
   });
 }

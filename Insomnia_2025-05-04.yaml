@@ -1,0 +1,979 @@
+type: spec.insomnia.rest/5.0
+name: Shopper API
+meta:
+  id: wrk_db16a7f17e7c4bccbf27eecce25be49a
+  created: 1746188681315
+  modified: 1746204582690
+collection:
+  - name: Auth
+    meta:
+      id: fld_d49133faeb9b42a5b57ef153ad114e2c
+      created: 1746387035624
+      modified: 1746387035624
+      sortKey: -1746387035624
+      description: Authentication endpoints
+    children:
+      - url: "{{ _.base_url }}/auth/login"
+        name: Login to an account
+        meta:
+          id: req_8011d5a5192a43f68813f0ed8634de25
+          created: 1746387035626
+          modified: 1746387035626
+          isPrivate: false
+          sortKey: -1746387035626
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "_id": "string",
+              "name": "string"
+            }
+        headers:
+          - name: Content-Type
+            disabled: false
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/auth/register"
+        name: Create an account
+        meta:
+          id: req_2aec3511ddba4813af98a9a3d10d6c59
+          created: 1746387035627
+          modified: 1746387035627
+          isPrivate: false
+          sortKey: -1746387035627
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "name": "string",
+              "password": "string"
+            }
+        headers:
+          - name: Content-Type
+            disabled: false
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: User
+    meta:
+      id: fld_393f4fa1b4bb4855bf9ae3f762cd9416
+      created: 1746387035625
+      modified: 1746387035625
+      sortKey: -1746387035625
+      description: Operations on self and info about other users
+    children:
+      - url: "{{ _.base_url }}/user/me"
+        name: Returns data about the current user
+        meta:
+          id: req_b8310ba3ad4a42cc9fb0472824dd15e2
+          created: 1746387035627
+          modified: 1746387035627
+          isPrivate: false
+          sortKey: -1746387035627
+        method: GET
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/user/me"
+        name: Updates a user with form data
+        meta:
+          id: req_72d0b487884f488c8c1d0240f179e421
+          created: 1746387035628
+          modified: 1746387035628
+          isPrivate: false
+          sortKey: -1746387035628
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "name": "string",
+              "password": "string"
+            }
+        headers:
+          - name: Content-Type
+            disabled: false
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/user/me"
+        name: Deletes the current user
+        meta:
+          id: req_cea20a94f7a540b6968c8ef6727dafb7
+          created: 1746387035629
+          modified: 1746387035629
+          isPrivate: false
+          sortKey: -1746387035629
+        method: DELETE
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: List
+    meta:
+      id: fld_9be0b99e7b05469291d7fa1b16fe9276
+      created: 1746387035625
+      modified: 1746387035625
+      sortKey: -1746387035625
+      description: Operations about lists
+    children:
+      - url: "{{ _.base_url }}/list/{{ _.listId }}"
+        name: Updates a list with form data
+        meta:
+          id: req_b471df76921f403e8c08b829dd8ef6c0
+          created: 1746387035630
+          modified: 1746387035630
+          isPrivate: false
+          sortKey: -1746387035630
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "name": "string",
+              "owner": "string"
+            }
+        headers:
+          - name: Content-Type
+            disabled: false
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/list/{{ _.listId }}"
+        name: Get list by ID
+        meta:
+          id: req_c83f1c943cab420faf1ffde21e763aa1
+          created: 1746387035630
+          modified: 1746387035630
+          isPrivate: false
+          description: Returns a full list
+          sortKey: -1746387035630
+        method: GET
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/list/{{ _.listId }}"
+        name: Deletes a list
+        meta:
+          id: req_cd9abc759be449368a8dea624a7e3c86
+          created: 1746387035631
+          modified: 1746387035631
+          isPrivate: false
+          sortKey: -1746387035631
+        method: DELETE
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/list/create"
+        name: Creates a list
+        meta:
+          id: req_ed6f7487d59847e1928de4b4249d1d6b
+          created: 1746387035631
+          modified: 1746387035631
+          isPrivate: false
+          sortKey: -1746387035631
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "listName": "string"
+            }
+        headers:
+          - name: Content-Type
+            disabled: false
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/list/acl"
+        name: Adds a user to the ACL of this list
+        meta:
+          id: req_d23cbb65ff5e459f9270704075eb00e4
+          created: 1746387035632
+          modified: 1746387035632
+          isPrivate: false
+          sortKey: -1746387035632
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "listId": "string",
+              "userId": "string"
+            }
+        headers:
+          - name: Content-Type
+            disabled: false
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/list/acl"
+        name: Removes a user from the ACL of this list
+        meta:
+          id: req_e500d50a1e9f41ba9b2490ab1527bb3a
+          created: 1746387035632
+          modified: 1746387035632
+          isPrivate: false
+          sortKey: -1746387035632
+        method: DELETE
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "listId": "string",
+              "userId": "string"
+            }
+        headers:
+          - name: Content-Type
+            disabled: false
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Item
+    meta:
+      id: fld_f8f7e6151cf944d9a1d8bbaa370005bf
+      created: 1746387035626
+      modified: 1746387035626
+      sortKey: -1746387035626
+      description: Operations about items
+    children:
+      - url: "{{ _.base_url }}/item/{{ _.itemId }}"
+        name: Updates an item with form data
+        meta:
+          id: req_2733c0e6451044a2933af7508b02c65a
+          created: 1746387035633
+          modified: 1746387035633
+          isPrivate: false
+          sortKey: -1746387035633
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "order": 0,
+              "content": "string",
+              "isComplete": true
+            }
+        headers:
+          - name: Content-Type
+            disabled: false
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/item/{{ _.itemId }}"
+        name: Returns a single item
+        meta:
+          id: req_8c568970076a4f1480c461838caea999
+          created: 1746387035633
+          modified: 1746387035633
+          isPrivate: false
+          sortKey: -1746387035633
+        method: GET
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/item/{{ _.itemId }}"
+        name: Deletes an item
+        meta:
+          id: req_5953144c80c9491e9ab5c8e7b90ed455
+          created: 1746387035634
+          modified: 1746387035634
+          isPrivate: false
+          sortKey: -1746387035634
+        method: DELETE
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base_url }}/item/create"
+        name: Creates an item
+        meta:
+          id: req_8070a3976da540d6b3bf474933c5beef
+          created: 1746387035634
+          modified: 1746387035634
+          isPrivate: false
+          sortKey: -1746387035634
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "listId": "string",
+              "order": 0,
+              "content": "string"
+            }
+        headers:
+          - name: Content-Type
+            disabled: false
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_1f26561a7a74bb6718891c4257485cc636960f74
+    created: 1746188681319
+    modified: 1746379807476
+  cookies:
+    - key: connect.sid
+      value: s%3A6Jzmo6LrMTKry_MU9LTkWcJYgFYSi1Hx.nLd3YR88vPrfVJn%2Ft1D4Knt9SJji5hD8Z78jicSWR0c
+      domain: localhost
+      path: /
+      httpOnly: true
+      hostOnly: true
+      creation: 2025-05-04T11:35:09.511Z
+      lastAccessed: 2025-05-04T17:30:07.476Z
+      sameSite: strict
+      id: 99b6591e-563b-4d36-91d1-3d247f5f2b6d
+environments:
+  name: Base Environment
+  meta:
+    id: env_1f26561a7a74bb6718891c4257485cc636960f74
+    created: 1746188681318
+    modified: 1746387035622
+    isPrivate: false
+  data:
+    base_url: "{{ _.scheme }}://{{ _.host }}{{ _.base_path }}"
+  subEnvironments:
+    - name: OpenAPI env shopper.arimodu.dev
+      meta:
+        id: env_e2d441a26e0c4f68b412744cf2036d78
+        created: 1746204616012
+        modified: 1746362490540
+        isPrivate: false
+        sortKey: 1746204616012
+      data:
+        scheme: https
+        base_path: /api/v1
+        host: shopper.arimodu.dev
+        test_name: test@arimodu.dev
+        test_password: pass123
+    - name: OpenAPI env localhost
+      meta:
+        id: env_64f1eba7704c4a1d89ab56ce92cb7f07
+        created: 1746267303052
+        modified: 1746363242388
+        isPrivate: false
+        sortKey: 1746267303052
+      data:
+        scheme: http
+        base_path: /api/v1
+        host: localhost:3000
+        test_name: test@arimodu.dev
+        test_password: pass123
+    - name: OpenAPI env shopper.arimodu.dev
+      meta:
+        id: env_ee59f31823e04ea5bf41c372aa775cc2
+        created: 1746387004166
+        modified: 1746387004166
+        isPrivate: false
+        sortKey: 1746387004166
+      data:
+        scheme: https
+        base_path: /api/v1
+        host: shopper.arimodu.dev
+    - name: OpenAPI env shopper.arimodu.dev
+      meta:
+        id: env_cd5e6ff6a2e44d479709633728ce7f74
+        created: 1746387035622
+        modified: 1746387035622
+        isPrivate: false
+        sortKey: 1746387035622
+      data:
+        scheme: https
+        base_path: /api/v1
+        host: shopper.arimodu.dev
+spec:
+  contents:
+    openapi: 3.0.0
+    info:
+      version: 1.0.0
+      title: Shopper API
+      contact:
+        email: support@arimodu.dev
+      license:
+        name: Source first license
+        url: https://sourcefirst.com/
+    tags:
+      - name: Auth
+        description: Authentication endpoints
+      - name: User
+        description: Operations on self and info about other users
+      - name: List
+        description: Operations about lists
+      - name: Item
+        description: Operations about items
+    paths:
+      /auth/login:
+        post:
+          tags:
+            - Auth
+          summary: Login to an account
+          operationId: login
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/User"
+          responses:
+            "200":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/User"
+            "401":
+              description: Invalid password
+            "404":
+              description: User not found
+      /auth/register:
+        post:
+          tags:
+            - Auth
+          summary: Create an account
+          operationId: register
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    password:
+                      type: string
+                  required:
+                    - name
+                    - password
+          responses:
+            "201":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/User"
+            "409":
+              description: Username already exists
+      /user/me:
+        get:
+          tags:
+            - User
+          summary: Returns data about the current user
+          operationId: getMe
+          responses:
+            "200":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            format: uuid
+                          name:
+                            type: string
+                      lists:
+                        type: object
+                        properties:
+                          owned:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/List"
+                          invited:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/List"
+            "401":
+              description: User is not logged in
+        patch:
+          tags:
+            - User
+          summary: Updates a user with form data
+          operationId: updateMe
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    password:
+                      type: string
+          responses:
+            "200":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    items:
+                      $ref: "#/components/schemas/User"
+            "401":
+              description: User is not logged in
+        delete:
+          tags:
+            - User
+          summary: Deletes the current user
+          operationId: deleteMe
+          responses:
+            "200":
+              description: successful operation
+            "401":
+              description: User is not logged in
+      "/list/{listId}":
+        get:
+          tags:
+            - List
+          summary: Get list by ID
+          description: Returns a full list
+          operationId: getListById
+          parameters:
+            - name: listId
+              in: path
+              description: ID of list to return
+              required: true
+              schema:
+                type: string
+                format: uuid
+          responses:
+            "200":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/List"
+            "401":
+              description: You are not logged in or associated with the specified list
+            "404":
+              description: List not found
+        patch:
+          tags:
+            - List
+          summary: Updates a list with form data
+          operationId: updateList
+          parameters:
+            - name: listId
+              in: path
+              description: ID of list that needs to be updated
+              required: true
+              schema:
+                type: string
+                format: uuid
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    name:
+                      description: Updated name of the pet
+                      type: string
+                    owner:
+                      description: Updated owner ID
+                      type: string
+                      format: uuid
+          responses:
+            "200":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/List"
+            "401":
+              description: You are not logged in or an owner of the specified list
+            "404":
+              description: List not found
+        delete:
+          tags:
+            - List
+          summary: Deletes a list
+          operationId: deleteList
+          parameters:
+            - name: listId
+              in: path
+              description: List ID to delete
+              required: true
+              schema:
+                type: string
+                format: uuid
+          responses:
+            "200":
+              description: successful operation
+            "401":
+              description: You are not logged in or an owner of the specified list
+            "404":
+              description: List not found
+      /list/create:
+        post:
+          tags:
+            - List
+          summary: Creates a list
+          operationId: createList
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    listName:
+                      description: Name of the list
+                      type: string
+          responses:
+            "201":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/List"
+            "401":
+              description: You are not logged in
+      /list/acl:
+        put:
+          tags:
+            - List
+          summary: Adds a user to the ACL of this list
+          operationId: addUser
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    listId:
+                      description: ID of the list
+                      type: string
+                      format: uuid
+                    userId:
+                      description: ID of the user
+                      type: string
+                      format: uuid
+          responses:
+            "200":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/List"
+            "400":
+              description: You cannot add yourself to a list you own
+            "401":
+              description: You are not logged in or an owner of the specified list
+            "404":
+              description: List not found
+        delete:
+          tags:
+            - List
+          summary: Removes a user from the ACL of this list
+          operationId: removeUser
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    listId:
+                      description: ID of the list
+                      type: string
+                      format: uuid
+                    userId:
+                      description: ID of the user
+                      type: string
+                      format: uuid
+          responses:
+            "200":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/List"
+            "400":
+              description: You cannot remove yourself from a list you own
+            "401":
+              description: You are not logged in or an owner of the specified list
+            "404":
+              description: List not found
+      "/item/{itemId}":
+        get:
+          tags:
+            - Item
+          summary: Returns a single item
+          operationId: getItem
+          parameters:
+            - name: itemId
+              in: path
+              description: Item ID to retrieve
+              required: true
+              schema:
+                type: string
+                format: uuid
+          responses:
+            "200":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/Item"
+            "404":
+              description: Item not found
+        patch:
+          tags:
+            - Item
+          summary: Updates an item with form data
+          operationId: updateItem
+          parameters:
+            - name: itemId
+              in: path
+              description: ID of item that needs to be updated
+              required: true
+              schema:
+                type: string
+                format: uuid
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    order:
+                      description: Updated order of the item
+                      type: number
+                      minimum: 0
+                    content:
+                      description: Updated content of the item
+                      type: string
+                    isComplete:
+                      description: Updated isComplete of the item
+                      type: boolean
+          responses:
+            "200":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/List"
+            "401":
+              description: You are not logged in or an owner of the list this item is a part
+                of
+            "404":
+              description: List not found
+        delete:
+          tags:
+            - Item
+          summary: Deletes an item
+          operationId: deleteItem
+          parameters:
+            - name: itemId
+              in: path
+              description: Item ID to delete
+              required: true
+              schema:
+                type: string
+                format: uuid
+          responses:
+            "200":
+              description: successful operation
+            "401":
+              description: You are not logged in or an owner of the list this item is a part
+                of
+            "404":
+              description: List not found
+      /item/create:
+        post:
+          tags:
+            - Item
+          summary: Creates an item
+          operationId: createItem
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    listId:
+                      description: ID of the list this item is to be a part of
+                      type: string
+                      format: uuid
+                    order:
+                      description: Updated order of the item
+                      type: number
+                      minimum: 0
+                    content:
+                      description: Updated content of the item
+                      type: string
+          responses:
+            "201":
+              description: successful operation
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/List"
+            "401":
+              description: You are not logged in
+            "404":
+              description: The list ID provided could not be found
+    servers:
+      - url: https://shopper.arimodu.dev/api/v1
+    components:
+      schemas:
+        List:
+          type: object
+          properties:
+            _id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            owner:
+              type: string
+              format: uuid
+            archived:
+              type: boolean
+            invitedUsers:
+              type: array
+              items:
+                type: string
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Item"
+        Item:
+          type: object
+          properties:
+            _id:
+              type: string
+              format: uuid
+            order:
+              type: number
+              minimum: 0
+            content:
+              type: string
+            isComplete:
+              type: boolean
+        User:
+          type: object
+          properties:
+            _id:
+              type: string
+              format: uuid
+            name:
+              type: string
+  meta:
+    id: spc_bb7b3919bbe7406f89e7fdc609036fec
+    created: 1746188695396
+    modified: 1746370325842
+testSuites:
+  - name: Unit tests
+    meta:
+      id: uts_7a1325e880d74604ad142813a94eb1d6
+      created: 1746268204223
+      modified: 1746357456530
+      sortKey: -1746268204223
+    tests:
+      - name: Create test account
+        meta:
+          id: ut_80d6602f16c947699a93753156b99ab1
+          created: 1746268244301
+          modified: 1746357456530
+          sortKey: -1746268244301
+        requestId: req_25f4fa7b8a324598a490fda4095d6e60
+        code: >-
+          const response1 = await insomnia.send();
+
+          expect(response1.status).to.equal(201);
+
+          const body = response1.json();
+
+          expect(body).to.have.property('name').that.equals(insomnia.environment.get('test_name'));

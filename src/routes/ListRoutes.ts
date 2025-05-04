@@ -14,6 +14,7 @@ const Validators = {
   patch: z.object({
     name: z.string().optional(),
     owner: z.string().uuid().optional(),
+    archived: z.boolean().optional(),
   }),
   acl: z.object({
     listId: z.string().uuid(),
@@ -50,7 +51,7 @@ async function create(req: IReq, res: IRes) {
 
 async function patch(req: IReq, res: IRes) {
   const { listId } = Validators.param.parse(req.params);
-  const { name, owner } = Validators.patch.parse(req.body);
+  const { name, owner, archived } = Validators.patch.parse(req.body);
 
   const user = req.session.user!;
 
@@ -67,7 +68,7 @@ async function patch(req: IReq, res: IRes) {
     return;
   }
 
-  const data = await dbEngine.updateList(listId, name, owner);
+  const data = await dbEngine.updateList(listId, name, owner, archived);
 
   res.status(data ? 200 : 500).json(data ?? { error: 'Internal server error'});
 }

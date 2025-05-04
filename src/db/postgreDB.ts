@@ -142,24 +142,24 @@ export default class PostgreDBEngine implements IDbEngine {
     return { ...res.rows[0], items: [], invitedUsers: [] };
   }
 
-  async getListById(id: string): Promise<IList | null> {
+  async getListById(listId: string): Promise<IList | null> {
     try {
       const listRes = await this.pool.query(
         'SELECT * FROM lists WHERE _id = $1',
-        [id],
+        [listId],
       );
       if (!listRes.rows[0]) {
-        console.error(`List with ID ${id} not found`);
+        console.error(`List with ID ${listId} not found`);
         return null;
       }
 
       const itemsRes = await this.pool.query(
         'SELECT * FROM items WHERE listId = $1',
-        [id],
+        [listId],
       );
       const aclRes = await this.pool.query(
         'SELECT userId FROM acl WHERE listId = $1',
-        [id],
+        [listId],
       );
 
       return {
@@ -171,12 +171,12 @@ export default class PostgreDBEngine implements IDbEngine {
           _id: row._id,
           order: row.order,
           content: row.content,
-          isComplete: row.isComplete,
+          isComplete: row.iscomplete,
         })),
         invitedUsers: aclRes.rows.map((row) => row.userId),
       };
     } catch (error) {
-      console.error(`Error fetching list by ID ${id}: ${error}`);
+      console.error(`Error fetching list by ID ${listId}: ${error}`);
       return null;
     }
   }
@@ -191,9 +191,39 @@ export default class PostgreDBEngine implements IDbEngine {
         console.error(`No item found with ID ${itemId}`);
         return null;
       }
-      const listId = itemRes.rows[0].listId;
+      const listId: string = itemRes.rows[0].listid;
+      
+      const listRes = await this.pool.query(
+        'SELECT * FROM lists WHERE _id = $1',
+        [listId],
+      );
+      //if (listRes.rows[0].len() < 1) { // WTF JAVASCRIPT. WHY THE FUCK ARE YOU LIKE THIS AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA RIP 4 HOURS
+      //  console.error(`List with ID ${listId} not found`);
+      //  return null;
+      //}
 
-      return await this.getListById(listId);
+      const itemsRes = await this.pool.query(
+        'SELECT * FROM items WHERE listId = $1',
+        [listId],
+      );
+      const aclRes = await this.pool.query(
+        'SELECT userId FROM acl WHERE listId = $1',
+        [listId],
+      );
+
+      return {
+        _id: listRes.rows[0]._id,
+        name: listRes.rows[0].name,
+        owner: listRes.rows[0].owner,
+        archived: listRes.rows[0].archived,
+        items: itemsRes.rows.map((row) => ({
+          _id: row._id,
+          order: row.order,
+          content: row.content,
+          isComplete: row.iscomplete,
+        })),
+        invitedUsers: aclRes.rows.map((row) => row.userId),
+      };
     } catch (error) {
       console.error(`Error fetching list by item ID ${itemId}: ${error}`);
       return null;
@@ -227,7 +257,7 @@ export default class PostgreDBEngine implements IDbEngine {
             _id: item._id,
             order: item.order,
             content: item.content,
-            isComplete: item.isComplete,
+            isComplete: item.iscomplete,
           })),
           invitedUsers: aclRes.rows.map((acl) => acl.userId),
         });
@@ -273,7 +303,7 @@ export default class PostgreDBEngine implements IDbEngine {
     try {
       const query = `UPDATE lists SET ${updates.join(
         ', ',
-      )} WHERE _id = $1 RETURNING _id, name, owner`;
+      )} WHERE _id = $1 RETURNING _id, name, owner, archived`;
       const res = await this.pool.query(query, values);
       if (!res.rows[0]) {
         console.error(`No list found with ID ${listId} for update`);
@@ -298,7 +328,7 @@ export default class PostgreDBEngine implements IDbEngine {
           _id: row._id,
           order: row.order,
           content: row.content,
-          isComplete: row.isComplete,
+          isComplete: row.iscomplete,
         })),
         invitedUsers: aclRes.rows.map((row) => row.userId),
       };
@@ -396,14 +426,16 @@ export default class PostgreDBEngine implements IDbEngine {
     try {
       const query = `UPDATE items SET ${updates.join(
         ', ',
-      )} WHERE _id = $1 RETURNING listId`;
+      )} WHERE _id = $1 RETURNING *`;
       const res = await this.pool.query(query, values);
       if (!res.rows[0]) {
         console.error(`No item found with ID ${itemId} for update`);
         return null;
       }
 
-      return await this.getListById(res.rows[0].listId);
+      const listId: string = res.rows[0].listid;
+
+      return await this.getListById(listId);
     } catch (error) {
       console.error(`Error updating item with ID ${itemId}: ${error}`);
       return null;

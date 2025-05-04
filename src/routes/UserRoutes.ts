@@ -14,11 +14,16 @@ const Validators = {
   }),
 } as const;
 
-function me(req: IReq, res: IRes) {
+async function me(req: IReq, res: IRes) {
   const user = req.session.user!;
+  const dbEngine = getDbEngine();
+  const ownedLists = await dbEngine.getListsByUserId(user._id);
+  const invitedLists = await dbEngine.getInvitedLists(user._id);
   res.status(200).json({
     _id: user._id,
-    name: user.name
+    name: user.name,
+    owned: ownedLists,
+    invitedLists: invitedLists,
   });
 }
 
@@ -40,9 +45,9 @@ async function update(req: IReq, res: IRes) {
 
   res.status(data ? 200 : 500).json(data ? {
     _id: data._id,
-    name: data.name
+    name: data.name,
   } : {
-    error: 'Internal server error'
+    error: 'Internal server error',
   });
 }
 
@@ -52,11 +57,11 @@ async function delete_(req: IReq, res: IRes) {
   const dbEngine = getDbEngine();
   const data = await dbEngine.deleteUser(user._id);
   req.session.destroy((err) => {
-     console.info('Session cleared');
-     if (err) console.error(err);
+    console.info('Session cleared');
+    if (err) console.error(err);
   });
   res.clearCookie('connect.sid').status(data ? 200 : 500).send(data ? null : {
-    error: 'Internal server error'
+    error: 'Internal server error',
   });
 }
 

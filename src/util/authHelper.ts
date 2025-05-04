@@ -6,5 +6,5 @@ import bcrypt from 'bcrypt';
  * @returns A hash of pass
  */
 export async function hashPassword(pass: string): Promise<string> {
-    return bcrypt.hash(pass, 10);
+  return bcrypt.hash(pass, 10);
 }

@@ -18,7 +18,7 @@ const Validators = {
   acl: z.object({
     listId: z.string().uuid(),
     userId: z.string().uuid(),
-  })
+  }),
 } as const;
 
 async function get(req: IReq, res: IRes) {

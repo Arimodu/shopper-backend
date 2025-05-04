@@ -19,6 +19,7 @@ export interface IDbEngine {
   createList(name: string, owner: string): Promise<IList>;
   getListById(id: string): Promise<IList | null>;
   getListByItemId(itemId: string): Promise<IList | null>;
+  getListsByUserId(userId: string): Promise<IList[]>;
   updateList(listId: string, name?: string, owner?: string): Promise<IList | null>;
   deleteList(id: string): Promise<boolean>;
   
@@ -30,6 +31,7 @@ export interface IDbEngine {
   
   // ACL operations
   addUserToList(listId: string, userId: string): Promise<IList>;
+  getInvitedLists(userId: string): Promise<IList[]>;
   removeUserFromList(listId: string, userId: string): Promise<IList>;
 }
 

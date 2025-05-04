@@ -52,7 +52,7 @@ export default class MongoDBEngine implements IDbEngine {
   }
 
   public async updateUser(userId: string, name?: string, bcrypt?: string): Promise<IUser | null> {
-    const update: { name?: string; bcrypt?: string } = {};
+    const update: { name?: string, bcrypt?: string } = {};
     if (name) update.name = name;
     if (bcrypt) update.bcrypt = bcrypt;
     return await User.findByIdAndUpdate(userId, { $set: update }, { new: true });
@@ -72,7 +72,7 @@ export default class MongoDBEngine implements IDbEngine {
   }
 
   public async updateList(listId: string, name?: string, owner?: string): Promise<IList | null> {
-    const update: { name?: string; owner?: string } = {};
+    const update: { name?: string, owner?: string } = {};
     if (name) update.name = name;
     if (owner) update.owner = owner;
     return await List.findByIdAndUpdate(listId, { $set: update }, { new: true });
@@ -97,6 +97,10 @@ export default class MongoDBEngine implements IDbEngine {
     return list;
   }
 
+  public async getListsByUserId(userId: string): Promise<IList[]> {
+    return await List.find({ owner: userId }).exec();
+  }
+
   public async addItem(listId: string, order: number, content: string): Promise<IList> {
     return (await List.findByIdAndUpdate(
       listId,
@@ -106,7 +110,7 @@ export default class MongoDBEngine implements IDbEngine {
   }
 
   public async updateItem(itemId: string, order?: number, content?: string, isDone?: boolean): Promise<IList | null> {
-    const update: { 'items.$.order'?: number; 'items.$.content'?: string; 'items.$.isDone'?: boolean } = {};
+    const update: { 'items.$.order'?: number, 'items.$.content'?: string, 'items.$.isDone'?: boolean } = {};
     if (order) update['items.$.order'] = order;
     if (content) update['items.$.content'] = content;
     if (isDone !== undefined) update['items.$.isDone'] = isDone; // This caused a headache... if (bool) right, yea, thats gonna check if the bool is null, ofc you dumbass
@@ -132,6 +136,10 @@ export default class MongoDBEngine implements IDbEngine {
       { $addToSet: { invitedUsers: userId } },
       { new: true },
     ))!;
+  }
+
+  public async getInvitedLists(userId: string): Promise<IList[]> {
+    return await List.find({ invitedUsers: userId }).exec();
   }
 
   public async removeUserFromList(listId: string, userId: string): Promise<IList> {

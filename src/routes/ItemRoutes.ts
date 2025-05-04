@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import getDbEngine from '@src/db/dbEngine';
 import { IReq, IRes } from './types';
 import { z } from 'zod';

@@ -9,6 +9,7 @@ import AuthRoutes from './routes/AuthRoutes';
 import { CipherKey } from 'crypto';
 import getDbEngine from './db/dbEngine';
 import PostgreDBEngine from './db/postgreDB';
+import path from 'path';
 
 dotenv.config();
 const pgSession = connectPgSimple(session);
@@ -49,6 +50,7 @@ if (process.env.NODE_ENV === 'dev') {
     console.log(JSON.stringify(req.body));
     next();
   });
+  
 }
 
 // Quick and dirty auth implementation
@@ -74,6 +76,16 @@ app.use((err: Error, _: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ error: err });
   return next(err);
 });
+
+if (process.env.NODE_ENV === 'dev') {
+  app.use(express.static(path.join(__dirname, '../../shopper-frontend/dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../shopper-frontend/dist', 'index.html'));
+  });
+}
+else {
+  
+}
 
 app.listen(process.env.PORT, () =>
   console.log(`Express server started on port: ${process.env.PORT}`),

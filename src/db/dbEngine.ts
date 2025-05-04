@@ -20,7 +20,7 @@ export interface IDbEngine {
   getListById(id: string): Promise<IList | null>;
   getListByItemId(itemId: string): Promise<IList | null>;
   getListsByUserId(userId: string): Promise<IList[]>;
-  updateList(listId: string, name?: string, owner?: string): Promise<IList | null>;
+  updateList(listId: string, name?: string, owner?: string, archived?: boolean): Promise<IList | null>;
   deleteList(id: string): Promise<boolean>;
   
   // Item operations

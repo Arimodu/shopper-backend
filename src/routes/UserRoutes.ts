@@ -20,10 +20,14 @@ async function me(req: IReq, res: IRes) {
   const ownedLists = await dbEngine.getListsByUserId(user._id);
   const invitedLists = await dbEngine.getInvitedLists(user._id);
   res.status(200).json({
-    _id: user._id,
-    name: user.name,
-    owned: ownedLists,
-    invitedLists: invitedLists,
+    user: {
+      _id: user._id,
+      name: user.name,
+    },
+    lists: {
+      owned: ownedLists,
+      invitedLists: invitedLists,
+    },
   });
 }
 

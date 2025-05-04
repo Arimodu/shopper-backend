@@ -33,7 +33,8 @@ export default class PostgreDBEngine implements IDbEngine {
       CREATE TABLE IF NOT EXISTS lists (
         _id UUID PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        owner UUID NOT NULL REFERENCES users(_id) ON DELETE CASCADE
+        owner UUID NOT NULL REFERENCES users(_id) ON DELETE CASCADE,
+        archived BOOLEAN NOT NULL DEFAULT FALSE
       );
 
       CREATE TABLE IF NOT EXISTS items (
@@ -41,7 +42,7 @@ export default class PostgreDBEngine implements IDbEngine {
         listId UUID NOT NULL REFERENCES lists(_id) ON DELETE CASCADE,
         "order" INTEGER NOT NULL,
         content VARCHAR(255) NOT NULL,
-        isDone BOOLEAN NOT NULL DEFAULT FALSE
+        isComplete BOOLEAN NOT NULL DEFAULT FALSE
       );
 
       CREATE TABLE IF NOT EXISTS acl (
@@ -77,45 +78,6 @@ export default class PostgreDBEngine implements IDbEngine {
       name,
     ]);
     return res.rows[0] || null;
-  }
-
-  async getListsByUserId(userId: string): Promise<IList[]> {
-    try {
-      const listRes = await this.pool.query(
-        'SELECT * FROM lists WHERE owner = $1',
-        [userId],
-      );
-      const lists: IList[] = [];
-
-      for (const row of listRes.rows) {
-        const itemsRes = await this.pool.query(
-          'SELECT * FROM items WHERE listId = $1',
-          [row._id],
-        );
-        const aclRes = await this.pool.query(
-          'SELECT userId FROM acl WHERE listId = $1',
-          [row._id],
-        );
-
-        lists.push({
-          _id: row._id,
-          name: row.name,
-          owner: row.owner,
-          items: itemsRes.rows.map((item) => ({
-            _id: item._id,
-            order: item.order,
-            content: item.content,
-            isDone: item.isDone,
-          })),
-          invitedUsers: aclRes.rows.map((acl) => acl.userId),
-        });
-      }
-
-      return lists;
-    } catch (error) {
-      console.error(`Error fetching lists for user ID ${userId}: ${error}`);
-      return [];
-    }
   }
 
   async updateUser(
@@ -204,11 +166,12 @@ export default class PostgreDBEngine implements IDbEngine {
         _id: listRes.rows[0]._id,
         name: listRes.rows[0].name,
         owner: listRes.rows[0].owner,
+        archived: listRes.rows[0].archived,
         items: itemsRes.rows.map((row) => ({
           _id: row._id,
           order: row.order,
           content: row.content,
-          isDone: row.isDone,
+          isComplete: row.isComplete,
         })),
         invitedUsers: aclRes.rows.map((row) => row.userId),
       };
@@ -237,13 +200,54 @@ export default class PostgreDBEngine implements IDbEngine {
     }
   }
 
+  async getListsByUserId(userId: string): Promise<IList[]> {
+    try {
+      const listRes = await this.pool.query(
+        'SELECT * FROM lists WHERE owner = $1',
+        [userId],
+      );
+      const lists: IList[] = [];
+
+      for (const row of listRes.rows) {
+        const itemsRes = await this.pool.query(
+          'SELECT * FROM items WHERE listId = $1',
+          [row._id],
+        );
+        const aclRes = await this.pool.query(
+          'SELECT userId FROM acl WHERE listId = $1',
+          [row._id],
+        );
+
+        lists.push({
+          _id: row._id,
+          name: row.name,
+          owner: row.owner,
+          archived: row.archived ?? false,
+          items: itemsRes.rows.map((item) => ({
+            _id: item._id,
+            order: item.order,
+            content: item.content,
+            isComplete: item.isComplete,
+          })),
+          invitedUsers: aclRes.rows.map((acl) => acl.userId),
+        });
+      }
+
+      return lists;
+    } catch (error) {
+      console.error(`Error fetching lists for user ID ${userId}: ${error}`);
+      return [];
+    }
+  }
+
   async updateList(
     listId: string,
     name?: string,
     owner?: string,
+    archived?: boolean,
   ): Promise<IList | null> {
     const updates: string[] = [];
-    const values: (string | undefined)[] = [listId];
+    const values: (string | boolean | undefined)[] = [listId];
     let paramIndex = 2;
 
     if (name !== undefined) {
@@ -254,6 +258,11 @@ export default class PostgreDBEngine implements IDbEngine {
     if (owner !== undefined) {
       updates.push(`owner = $${paramIndex}`);
       values.push(owner);
+      paramIndex++;
+    }
+    if (archived !== undefined) {
+      updates.push(`archived = $${paramIndex}`);
+      values.push(archived);
       paramIndex++;
     }
 
@@ -284,11 +293,12 @@ export default class PostgreDBEngine implements IDbEngine {
         _id: res.rows[0]._id,
         name: res.rows[0].name,
         owner: res.rows[0].owner,
+        archived: res.rows[0].archived,
         items: itemsRes.rows.map((row) => ({
           _id: row._id,
           order: row.order,
           content: row.content,
-          isDone: row.isDone,
+          isComplete: row.isComplete,
         })),
         invitedUsers: aclRes.rows.map((row) => row.userId),
       };
@@ -308,7 +318,7 @@ export default class PostgreDBEngine implements IDbEngine {
 
   async getItemById(itemId: string): Promise<IItem | null> {
     const res = await this.pool.query(
-      'SELECT _id, "order", content, isDone FROM items WHERE _id = $1',
+      'SELECT _id, "order", content, isComplete FROM items WHERE _id = $1',
       [itemId],
     );
     if (!res.rows[0]) {
@@ -319,7 +329,7 @@ export default class PostgreDBEngine implements IDbEngine {
       _id: res.rows[0]._id,
       order: res.rows[0].order,
       content: res.rows[0].content,
-      isDone: res.rows[0].isDone,
+      isComplete: res.rows[0].isComplete,
     };
   }
 
@@ -329,7 +339,7 @@ export default class PostgreDBEngine implements IDbEngine {
     content: string,
   ): Promise<IList> {
     await this.pool.query(
-      'INSERT INTO items (_id, listId, "order", content, isDone) VALUES ($1, $2, $3, $4, $5)',
+      'INSERT INTO items (_id, listId, "order", content, isComplete) VALUES ($1, $2, $3, $4, $5)',
       [uuidv4(), listId, order, content, false],
     );
     return (await this.getListById(listId))!;
@@ -339,7 +349,7 @@ export default class PostgreDBEngine implements IDbEngine {
     itemId: string,
     order?: number,
     content?: string,
-    isDone?: boolean,
+    isComplete?: boolean,
   ): Promise<IList | null> {
     const updates: string[] = [];
     const values: (string | number | boolean | undefined)[] = [itemId];
@@ -355,9 +365,9 @@ export default class PostgreDBEngine implements IDbEngine {
       values.push(content);
       paramIndex++;
     }
-    if (isDone !== undefined) {
-      updates.push(`isDone = $${paramIndex}`);
-      values.push(isDone);
+    if (isComplete !== undefined) {
+      updates.push(`isComplete = $${paramIndex}`);
+      values.push(isComplete);
       paramIndex++;
     }
 
@@ -376,7 +386,7 @@ export default class PostgreDBEngine implements IDbEngine {
       );
       if (!list) {
         console.error(
-          `Orphaned item id: ${itemId} has not been found... Your database is fucked, this state should never happen. Please fix your DB manually.`,
+          `Orphaned item id: ${itemId} has been found... Your database is fucked, this state should never happen. Please fix your DB manually.`,
         );
         return null;
       }

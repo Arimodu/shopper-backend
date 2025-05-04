@@ -15,7 +15,7 @@ const Validators = {
   patch: z.object({
     order: z.number().optional(),
     content: z.string().optional(),
-    isDone: z.boolean().optional(),
+    isComplete: z.boolean().optional(),
   }),
   delete: z.object({
     listId: z.string().uuid(),
@@ -61,7 +61,7 @@ async function create(req: IReq, res: IRes) {
 
 async function patch(req: IReq, res: IRes) {
   const { itemId } = Validators.param.parse(req.params);
-  const { order, content, isDone } = Validators.patch.parse(req.body);
+  const { order, content, isComplete } = Validators.patch.parse(req.body);
 
   const dbEngine = getDbEngine();
   const list = await dbEngine.getListByItemId(itemId);
@@ -78,7 +78,7 @@ async function patch(req: IReq, res: IRes) {
     return;
   }
 
-  const data = await dbEngine.updateItem(itemId, order, content, isDone);
+  const data = await dbEngine.updateItem(itemId, order, content, isComplete);
   res.status(data ? 200 : 500).json(data ?? { error: 'Internal server error'});
 }
 

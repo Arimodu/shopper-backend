@@ -9,7 +9,7 @@ const ItemSchema = new Schema({
   _id: { type: String, default: uuidv4 },
   order: { type: Number, required: true },
   content: { type: String, required: true },
-  isDone: { type: Boolean, required: true, default: false },
+  isComplete: { type: Boolean, required: true, default: false },
 });
 
 const UserSchema = new Schema({
@@ -22,6 +22,7 @@ const ListSchema = new Schema({
   _id: { type: String, default: uuidv4 },
   name: { type: String, required: true },
   owner: { type: String, ref: 'User', required: true },
+  archived: { type: Boolean, required: true, default: false },
   invitedUsers: [{ type: String, ref: 'User' }],
   items: [ItemSchema],
 });
@@ -71,10 +72,11 @@ export default class MongoDBEngine implements IDbEngine {
     return await List.findById(id);
   }
 
-  public async updateList(listId: string, name?: string, owner?: string): Promise<IList | null> {
-    const update: { name?: string, owner?: string } = {};
+  public async updateList(listId: string, name?: string, owner?: string, archived?: boolean): Promise<IList | null> {
+    const update: { name?: string, owner?: string, archived?: boolean } = {};
     if (name) update.name = name;
     if (owner) update.owner = owner;
+    if (archived != undefined) update.archived = archived;
     return await List.findByIdAndUpdate(listId, { $set: update }, { new: true });
   }
 
@@ -85,7 +87,7 @@ export default class MongoDBEngine implements IDbEngine {
 
   public async getItemById(itemId: string): Promise<IItem | null> {
     const list = await List.findOne({ 'items._id': itemId }, { 'items.$': 1 });
-    return list?.items[0] || null;
+    return list?.items[0] ?? null;
   }
 
   public async getListByItemId(itemId: string): Promise<IList | null> {
@@ -104,16 +106,16 @@ export default class MongoDBEngine implements IDbEngine {
   public async addItem(listId: string, order: number, content: string): Promise<IList> {
     return (await List.findByIdAndUpdate(
       listId,
-      { $push: { items: { _id: uuidv4(), order, content, isDone: false } } },
+      { $push: { items: { _id: uuidv4(), order, content, isComplete: false } } },
       { new: true },
     ))!;
   }
 
-  public async updateItem(itemId: string, order?: number, content?: string, isDone?: boolean): Promise<IList | null> {
-    const update: { 'items.$.order'?: number, 'items.$.content'?: string, 'items.$.isDone'?: boolean } = {};
+  public async updateItem(itemId: string, order?: number, content?: string, isComplete?: boolean): Promise<IList | null> {
+    const update: { 'items.$.order'?: number, 'items.$.content'?: string, 'items.$.isComplete'?: boolean } = {};
     if (order) update['items.$.order'] = order;
     if (content) update['items.$.content'] = content;
-    if (isDone !== undefined) update['items.$.isDone'] = isDone; // This caused a headache... if (bool) right, yea, thats gonna check if the bool is null, ofc you dumbass
+    if (isComplete !== undefined) update['items.$.isComplete'] = isComplete; // This caused a headache... if (bool) right, yea, thats gonna check if the bool is null, ofc you dumbass
     return await List.findOneAndUpdate(
       { 'items._id': itemId },
       { $set: update },

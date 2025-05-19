@@ -1,5 +1,5 @@
 import { Response, Request } from 'express';
-import { IUser } from '@src/models/User';
+import { IUser } from '../../models/User';
 
 type TRecord = Record<string, unknown>;
 export type IReq = Request<TRecord, void, TRecord, TRecord>;

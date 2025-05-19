@@ -2,16 +2,18 @@
   "name": "shopper-backend",
   "version": "0.0.0",
   "scripts": {
-    "build": "ts-node ./scripts/build.ts",
+    "build": "tsc",
     "dev": "ts-node ./src/index.ts",
-    "dev:hot": "nodemon --exec \"npm run dev\" --watch ./src --ext .ts",
-    "lint": "eslint ."
+    "dev:hot": "nodemon --exec \"npm run dev\" --watch ./src/ --ext .ts",
+    "lint": "eslint .",
+    "test": "npm run build && mocha tests/**/*.test.js --exit"
   },
   "engines": {
     "node": ">=16.0.0"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
+    "chai": "^5.2.0",
     "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
     "dayjs": "^1.11.13",
@@ -22,6 +24,7 @@
     "helmet": "^8.1.0",
     "inserturlparams": "^2.0.5",
     "jsonfile": "^6.1.0",
+    "mocha": "^11.2.2",
     "module-alias": "^2.2.3",
     "mongoose": "^8.13.2",
     "morgan": "^1.10.0",

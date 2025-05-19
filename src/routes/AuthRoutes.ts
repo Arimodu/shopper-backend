@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
-import getDbEngine from '@src/db/dbEngine';
+import getDbEngine from '../db/dbEngine';
 import { IReq, IRes } from './types';
 import { z } from 'zod';
-import { hashPassword } from '@src/util/authHelper';
+import { hashPassword } from '../util/authHelper';
 
 const Validators = {
   login: z.object({

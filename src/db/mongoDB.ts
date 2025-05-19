@@ -1,9 +1,9 @@
 import mongoose, { Schema, model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { IDbEngine } from './dbEngine';
-import { IUser } from '@src/models/User';
-import { IItem } from '@src/models/Item';
-import { IList } from '@src/models/List';
+import { IUser } from '../models/User';
+import { IItem } from '../models/Item';
+import { IList } from '../models/List';
 
 const ItemSchema = new Schema({
   _id: { type: String, default: uuidv4 },

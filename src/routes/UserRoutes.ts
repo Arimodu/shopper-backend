@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { IReq, IRes } from './types';
 
-import getDbEngine from '@src/db/dbEngine';
-import { hashPassword } from '@src/util/authHelper';
+import getDbEngine from '../db/dbEngine';
+import { hashPassword } from '../util/authHelper';
 
 const Validators = {
   query: z.object({

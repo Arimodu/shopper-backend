@@ -1,6 +1,6 @@
-import { IUser } from '@src/models/User';
-import { IItem } from '@src/models/Item';
-import { IList } from '@src/models/List';
+import { IUser } from '../models/User';
+import { IItem } from '../models/Item';
+import { IList } from '../models/List';
 import MongoDBEngine from './mongoDB';
 import PostgreDBEngine from './postgreDB';
 

@@ -1,5 +1,5 @@
 /* eslint-disable max-len */
-import getDbEngine from '@src/db/dbEngine';
+import getDbEngine from '../db/dbEngine';
 
 import { IReq, IRes } from './types';
 import { z } from 'zod';
@@ -96,7 +96,12 @@ async function addUser(req: IReq, res: IRes) {
     return;
   }
 
-  const data = dbEngine.addUserToList(listId, userId);
+  if (list.invitedUsers.includes(userId)) {
+    res.status(200).json(list);
+    return;
+  }
+
+  const data = await dbEngine.addUserToList(listId, userId);
   res.status(200).json(data);
 }
 
@@ -123,7 +128,7 @@ async function removeUser(req: IReq, res: IRes) {
     return;
   }
 
-  const data = dbEngine.removeUserFromList(listId, userId);
+  const data = await dbEngine.removeUserFromList(listId, userId);
   res.status(200).json(data);
 }
 

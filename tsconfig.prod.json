@@ -10,7 +10,7 @@
     "skipLibCheck": true,                     
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@src/*": ["src/*"]
+      "./*": ["src/*"]
     },
     "useUnknownInCatchVariables": false,
     "sourceMap": false,

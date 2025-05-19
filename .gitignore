@@ -4,3 +4,4 @@ temp/
 **/**/*.log
 config.js
 .env
+package-lock.json
